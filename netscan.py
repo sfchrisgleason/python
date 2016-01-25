@@ -1,0 +1,255 @@
+#!/usr/bin/env python3
+
+'''
+#==================================================================================#
+# AUTHOR: Chris Gleason                                                            #
+# DATE:   1/12/2016                                                                #
+# Version:  1.0                                                                    #
+# COMMENT: NetScan deamon to monitor state changes for network nodes               #
+#==================================================================================#
+# Simple UDP/TCP Netscanner to monitor state changes on the network                #
+#==================================================================================#
+
+### DESCRIPTION ###
+
+This is a simple daemon that will allow you to scan a network range using ICMP, TCP or UDP and 
+store the information in either memory or a file so that it can be referenced at a specific interval
+for state changes. It will allow you to log alerts or email them out to a specific email. It will
+also allow you to either set the process up as a deamon or just run it as a process.
+
+### FUTURE WORK ###
+
+1-14-2016 - I am building this out as a basic ICMP scanner to store up and down states of specific
+nodes. I plan to add functions to do TCP and UDP SYN scanning as well as allow for out and in files
+to use to store and retrive state data. I also want to add functions for logging and emailing state
+alerts. But the first order of business is to get basic ICMP scanning and state alerting to the
+console.
+
+### REQUIREMENTS ###
+
+So far I've tried to keep this using only standard Python libraries. One piece of code I borrowed
+to convert the IP and Netmask to a CIDR block from here: 
+
+http://terminalmage.net/2012/06/10/how-to-find-out-the-cidr-notation-for-a-subnet-given-an-ip-and-netmask.html
+
+Works fine once converted to py3 but I couldn't figure out how to integrate it, so I just call it directly
+using subprocess from a subdirectory called ref (for now). I'll work on integrating it so it doesn't have
+to be imported or called directly.
+
+### NOTES ###
+
+IPAddress module will do a lot of the heavy lifting with regards to calculating subnet nodes using a CIDR (https://docs.python.org/3/howto/ipaddress.html)
+
+'''
+
+__version__ = "$Revision: 1.0"
+
+###########
+# IMPORTS #
+###########
+
+import argparse
+import subprocess
+import os
+import ipaddress
+import sys
+import time
+import random
+import select
+import socket
+
+###########################################
+# NON FUNCTION/CLASS SCRIPT RELATED STUFF #
+###########################################
+
+parser = argparse.ArgumentParser(description='Network scanning daemon to check for node state changes via TCP/UDP/ICMP. \
+    Default (no args) will run in the foreground using ICMP and broadcast domain for discovery and will store state data in memory')
+parser.add_argument('--tcp' ,
+    action='store_true' ,
+    help='Use TCP SYN scanning for discovery - NOT IMPLEMENTED YET')
+parser.add_argument('--udp' ,
+    action='store_true' ,
+    help='Use UDP SYN scanning for discovery - NOT IMPLEMENTED YET')
+parser.add_argument('--infile' ,
+    action='store_true' ,
+    help='Use an existing file instead of scanning the network - NOT IMPLEMENTED YET')
+parser.add_argument('--outfile' ,
+    action='store_true' ,
+    help='Export stat data to a file - NOT IMPLEMENTED YET')
+parser.add_argument('--cidr' ,
+    action='store_true' ,
+    help='Use a CIDR block to generate scan range instead of using the broadcast domain - NOT IMPLMENTED YET')
+parser.add_argument('--email' ,
+    action='store_true' ,
+    help='Use an email to sent state change alerts to instead of the console - NOT IMPLEMENTED YET')
+parser.add_argument('--logging' ,
+    action='store_true' ,
+    help='Log state changes to local logs instead of the console - NOT IMPLEMENTED YEY')
+
+args = parser.parse_args()
+ip = ""
+nm = ""
+dd_nm = ""
+
+
+
+#############
+# FUNCTIONS #
+#############
+
+
+def output_title(title):
+
+    '''
+    Function to auto-generate output headers and titles
+
+    output=string
+    '''
+
+    titlelen = len(title)
+    print('=' * titlelen)
+    print(title)
+    print('=' * titlelen)
+
+def get_net_info():
+
+    '''
+    Function that pulls net info from the host converts it into subnet info, calculates hosts
+    list and dumps it into an array
+
+    output=string
+    '''
+
+    global ip
+    global cidr
+    global dd_nm
+
+    iface = input('What interface would you like to use: ')
+
+    # Get IP from subprocess
+
+    ipcmd = "ifconfig %s | grep netmask | awk {'print $2'}" % (iface)
+    ip = subprocess.Popen(ipcmd , shell=True, stdout=subprocess.PIPE)
+    ip = ip.stdout.read()
+    ip = str(ip).strip('b').strip('\'').strip('\\n')
+    print("IP is: " + ip)
+
+    # Get Netmask from subprocess
+
+    nmcmd = "ifconfig %s | grep netmask | awk {'print $4'}" % (iface)
+    nm = subprocess.Popen(nmcmd , shell=True, stdout=subprocess.PIPE)
+    nm = nm.stdout.read()
+    nm = str(nm).strip('b').strip('\'').strip('\\n')
+    print("Netmask Hex is: " + nm)
+
+    # Convert hexmask to dotted decimal
+
+    i = nm
+    prefix = i[0:2]
+    first = i[2:4]
+    second = i[4:6]
+    third = i[6:8]
+    forth = i[8:10]
+
+    oct1 = "0x{}".format(first)
+    oct2 = "0x{}".format(second)
+    oct3 = "0x{}".format(third)
+    oct4 = "0x{}".format(forth)
+
+    oct1 = int(oct1, 0)
+    oct2 = int(oct2, 0)
+    oct3 = int(oct3, 0)
+    oct4 = int(oct4, 0)
+
+    dd_nm = ("" + str(oct1) + "." + str(oct2) + "." + str(oct3) + "." + str(oct4))
+    dd_nm = str(dd_nm)
+    print("Dotted Decimal Netmask is: " + dd_nm)
+
+    cidr = subprocess.check_output(['python3 ref/getcidr3.py ' + ip + ' ' + dd_nm], shell=True)
+    cidr = str(cidr).strip('b').strip('\'').strip('\\n')
+    print(cidr)
+
+    ### RETURNS ###
+
+    return cidr
+    return dd_nm
+    return ip
+
+def initial_net_scan(a):
+
+    '''
+    Function takes cidr variable form the get_net_info, creates a list of IP's
+    then scans them all using the ping function
+    '''
+
+    net4 = ipaddress.ip_network(a)
+    for x in net4.hosts():
+        #print(x)
+        #subprocess.call(["ping -c 1 -t 1 " + str(x)], shell=True)
+        print(ping(str(x)))
+
+def print_net_info(a, b, c):
+    
+    '''
+    Test function to see what is being returned after each stage
+    '''
+
+    global cidr
+    global dd_nm
+    global ip
+
+    print ()
+    print ("### EXTERNAL NET INFO ###")
+    print ("External CIDR is " + a)
+    print ("External IP is " + b)
+    print ("External Netmask is " + c)
+
+def chk(data):
+
+    '''
+    Function that validates data being sent to ping function
+    '''
+
+    x = sum(a + b * 256 for a, b in zip(data[::2], data[1::2] + b'\x00')) & 0xFFFFFFFF
+    x = (x >> 16) + (x & 0xFFFF)
+    x = (x >> 16) + (x & 0xFFFF)
+    return (~x & 0xFFFF).to_bytes(2, 'little')
+
+def ping(addr, timeout=.1):
+
+    '''
+    Function that creates a raw socket using ICMP
+    '''
+
+    with socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_ICMP) as conn:
+        payload = random.randrange(0, 65536).to_bytes(2, 'big') + b'\x01\x00'
+        packet  = b'\x08\x00' + b'\x00\x00' + payload
+        packet  = b'\x08\x00' + chk(packet) + payload
+        conn.connect((addr, 80))
+        conn.sendall(packet)
+
+        start = time.time()
+
+        while select.select([conn], [], [], max(0, start + timeout - time.time()))[0]:
+            packet    = conn.recv(1024)[20:]
+            unchecked = packet[:2] + b'\0\0' + packet[4:]
+
+            if packet == b'\0\0' + chk(unchecked) + payload:
+                return time.time() - start
+
+
+
+############
+# MAIN RUN #
+############
+
+
+if __name__ == "__main__":
+
+    title='Netscanner - Network state discovery and change alerter daemon'
+    output_title(title)
+    print()
+    print()
+    get_net_info()
+    print_net_info(cidr, dd_nm, ip)
+    initial_net_scan(cidr)
