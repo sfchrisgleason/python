@@ -90,7 +90,7 @@ args = parser.parse_args()
 ip = ""
 nm = ""
 dd_nm = ""
-
+state_dict = {}
 
 
 #############
@@ -175,19 +175,6 @@ def get_net_info():
     return dd_nm
     return ip
 
-def initial_net_scan(a):
-
-    '''
-    Function takes cidr variable form the get_net_info, creates a list of IP's
-    then scans them all using the ping function
-    '''
-
-    net4 = ipaddress.ip_network(a)
-    for x in net4.hosts():
-        #print(x)
-        #subprocess.call(["ping -c 1 -t 1 " + str(x)], shell=True)
-        print(ping(str(x)))
-
 def print_net_info(a, b, c):
     
     '''
@@ -237,7 +224,40 @@ def ping(addr, timeout=.1):
             if packet == b'\0\0' + chk(unchecked) + payload:
                 return time.time() - start
 
+def initial_net_scan(a):
 
+    '''
+    Function takes cidr variable form the get_net_info, creates a list of IP's
+    then scans them all using the ping function
+    '''
+
+    global state_dict
+
+    net4 = ipaddress.ip_network(a)
+    print ()
+    print ("Calculating network host list and scanning.")
+    print ()
+    print ("Please be patient, this may take some time:")
+    print ()
+    for x in net4.hosts():
+        state_dict.update({x : [ping(str(x)), 0]})
+
+    return state_dict
+
+def print_dict(sd):
+
+    '''
+    Prints out state dictionary in formatted output
+    '''
+
+    global state_dict
+
+    for x,y in sd.items():
+        print_ip = x
+        print_rtt = y[0]
+        print_count = y[1]
+        print ("IP: " + str(print_ip) + "\t\tRTT: " + str(print_rtt) + "\t\t\tChange Count: " + str(print_count))
+        #print ("IP: " + str(x) + " \tRTT: " + y[0] + "\t"" \tChanges: " + y[1] )
 
 ############
 # MAIN RUN #
@@ -246,10 +266,24 @@ def ping(addr, timeout=.1):
 
 if __name__ == "__main__":
 
+    '''
+    Main Code run
+    '''
+
+    if os.geteuid() != 0:
+        exit('''
+
+This program creates and uses raw sockets which require root\n\
+priviledges to run. Please run it as root in order to use it.
+
+''')
+
     title='Netscanner - Network state discovery and change alerter daemon'
     output_title(title)
     print()
     print()
     get_net_info()
-    print_net_info(cidr, dd_nm, ip)
     initial_net_scan(cidr)
+    print_dict(state_dict)
+
+
