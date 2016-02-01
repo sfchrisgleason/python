@@ -27,15 +27,6 @@ console.
 
 ### REQUIREMENTS ###
 
-So far I've tried to keep this using only standard Python libraries. One piece of code I borrowed
-to convert the IP and Netmask to a CIDR block from here: 
-
-http://terminalmage.net/2012/06/10/how-to-find-out-the-cidr-notation-for-a-subnet-given-an-ip-and-netmask.html
-
-Works fine once converted to py3 but I couldn't figure out how to integrate it, so I just call it directly
-using subprocess from a subdirectory called ref (for now). I'll work on integrating it so it doesn't have
-to be imported or called directly.
-
 ### NOTES ###
 
 IPAddress module will do a lot of the heavy lifting with regards to calculating subnet nodes using a CIDR (https://docs.python.org/3/howto/ipaddress.html)
@@ -111,13 +102,19 @@ def output_title(title):
     print(title)
     print('=' * titlelen)
 
+def get_net_size(netmask):
+    binary_str = ''
+    for octet in netmask:
+        binary_str += bin(int(octet))[2:].zfill(8)
+    return str(len(binary_str.rstrip('0')))
+
 def get_net_info():
 
     '''
     Function that pulls net info from the host converts it into subnet info, calculates hosts
     list and dumps it into an array
 
-    output=string
+    output=strings and a dictionary
     '''
 
     global ip
@@ -165,9 +162,14 @@ def get_net_info():
     dd_nm = str(dd_nm)
     print("Dotted Decimal Netmask is: " + dd_nm)
 
-    cidr = subprocess.check_output(['python3 ref/getcidr3.py ' + ip + ' ' + dd_nm], shell=True)
-    cidr = str(cidr).strip('b').strip('\'').strip('\\n')
-    print(cidr)
+    # Convert IP and dotted decimal netmask to a CIDR block
+
+    splitip = ip.split('.')
+    splitnm = dd_nm.split('.')
+    net_start = [str(int(splitip[x]) & int(splitnm[x]))
+                 for x in range(0,4)]    
+    cidr = str('.'.join(net_start) + '/' + get_net_size(splitnm))
+    print (cidr)
 
     ### RETURNS ###
 
@@ -285,5 +287,4 @@ priviledges to run. Please run it as root in order to use it.
     get_net_info()
     initial_net_scan(cidr)
     print_dict(state_dict)
-
 
