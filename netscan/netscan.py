@@ -81,6 +81,8 @@ args = parser.parse_args()
 ip = ""
 nm = ""
 dd_nm = ""
+tout = .1
+iface = ""
 state_dict = {}
 
 
@@ -120,8 +122,11 @@ def get_net_info():
     global ip
     global cidr
     global dd_nm
+    global iface
+    global tout
 
     iface = input('What interface would you like to use: ')
+    tout = input('What timeout would you like to use (in seconds and you can use decimal numbers): ')
 
     # Get IP from subprocess
 
@@ -129,7 +134,6 @@ def get_net_info():
     ip = subprocess.Popen(ipcmd , shell=True, stdout=subprocess.PIPE)
     ip = ip.stdout.read()
     ip = str(ip).strip('b').strip('\'').strip('\\n')
-    print("IP is: " + ip)
 
     # Get Netmask from subprocess
 
@@ -137,7 +141,6 @@ def get_net_info():
     nm = subprocess.Popen(nmcmd , shell=True, stdout=subprocess.PIPE)
     nm = nm.stdout.read()
     nm = str(nm).strip('b').strip('\'').strip('\\n')
-    print("Netmask Hex is: " + nm)
 
     # Convert hexmask to dotted decimal
 
@@ -160,7 +163,6 @@ def get_net_info():
 
     dd_nm = ("" + str(oct1) + "." + str(oct2) + "." + str(oct3) + "." + str(oct4))
     dd_nm = str(dd_nm)
-    print("Dotted Decimal Netmask is: " + dd_nm)
 
     # Convert IP and dotted decimal netmask to a CIDR block
 
@@ -169,13 +171,14 @@ def get_net_info():
     net_start = [str(int(splitip[x]) & int(splitnm[x]))
                  for x in range(0,4)]    
     cidr = str('.'.join(net_start) + '/' + get_net_size(splitnm))
-    print (cidr)
 
     ### RETURNS ###
 
     return cidr
     return dd_nm
     return ip
+    return iface
+    return tout
 
 def print_net_info(a, b, c):
     
@@ -183,15 +186,19 @@ def print_net_info(a, b, c):
     Test function to see what is being returned after each stage
     '''
 
+    print ()
+
+    title="NETWORK INFORMATION"
+    output_title(title)
+
     global cidr
     global dd_nm
     global ip
 
     print ()
-    print ("### EXTERNAL NET INFO ###")
-    print ("External CIDR is " + a)
-    print ("External IP is " + b)
-    print ("External Netmask is " + c)
+    print ("IP is " + b)
+    print ("Netmask is " + c)
+    print ("CIDR is " + a)
 
 def chk(data):
 
@@ -204,10 +211,12 @@ def chk(data):
     x = (x >> 16) + (x & 0xFFFF)
     return (~x & 0xFFFF).to_bytes(2, 'little')
 
-def ping(addr, timeout=.1):
+def ping(addr, timeout=tout):
 
     '''
-    Function that creates a raw socket using ICMP
+    This Function creates a raw socket using ICMP, then connects to an address
+    using that socket, recording the time it takes to return. You can specify
+    timeout in the functions parameter declaration.
     '''
 
     with socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_ICMP) as conn:
@@ -229,7 +238,7 @@ def ping(addr, timeout=.1):
 def initial_net_scan(a):
 
     '''
-    Function takes cidr variable form the get_net_info, creates a list of IP's
+    Function takes cidr variable form get_net_info, creates a list of IP's
     then scans them all using the ping function
     '''
 
@@ -242,7 +251,7 @@ def initial_net_scan(a):
     print ("Please be patient, this may take some time:")
     print ()
     for x in net4.hosts():
-        state_dict.update({x : [ping(str(x)), 0]})
+        state_dict.update({x : [ping(str(x), float(tout)), 0]})
 
     return state_dict
 
@@ -285,6 +294,7 @@ priviledges to run. Please run it as root in order to use it.
     print()
     print()
     get_net_info()
+    print_net_info(cidr, ip, dd_nm)
     initial_net_scan(cidr)
     print_dict(state_dict)
 
