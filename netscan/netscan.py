@@ -69,7 +69,7 @@ parser.add_argument('--outfile' ,
     help='Export stat data to a file - NOT IMPLEMENTED YET')
 parser.add_argument('--cidr' ,
     action='store_true' ,
-    help='Use a CIDR block to generate scan range instead of using the broadcast domain - NOT IMPLMENTED YET')
+    help='Use a CIDR block to generate scan range instead of using the broadcast domain')
 parser.add_argument('--email' ,
     action='store_true' ,
     help='Use an email to sent state change alerts to instead of the console - NOT IMPLEMENTED YET')
@@ -104,6 +104,13 @@ def output_title(title):
     print(title)
     print('=' * titlelen)
 
+def get_tout(a):
+    global tout
+
+    tout = input('What timeout would you like to use (in seconds and you can use decimal numbers): ')
+    
+    return tout
+
 def get_net_size(netmask):
     binary_str = ''
     for octet in netmask:
@@ -126,7 +133,7 @@ def get_net_info():
     global tout
 
     iface = input('What interface would you like to use: ')
-    tout = input('What timeout would you like to use (in seconds and you can use decimal numbers): ')
+    get_tout(tout)
 
     # Get IP from subprocess
 
@@ -289,12 +296,34 @@ priviledges to run. Please run it as root in order to use it.
 
 ''')
 
+    if sys.platform != 'darwin':
+        print ("This script was designed to run on OSX. Currently that is the only platform it will work on.")
+        exit(0)
+    
+
     title='Netscanner - Network state discovery and change alerter daemon'
     output_title(title)
     print()
     print()
-    get_net_info()
-    print_net_info(cidr, ip, dd_nm)
-    initial_net_scan(cidr)
-    print_dict(state_dict)
+
+    if not len(sys.argv) > 1:
+        get_net_info()
+        print_net_info(cidr, ip, dd_nm)
+        initial_net_scan(cidr)
+        print_dict(state_dict)
+
+    #if args.ntfs and args.quick:
+    #    print('You chose ntfs and quick flags!')
+    #    quick=True
+    #    runperf()
+    #    runsys()
+    #    runntfs()
+
+    if args.cidr:
+        cidr = input('What CIDR block would you like to use (use X.X.X.X/XXX format) : ')
+        get_tout(tout)
+        print ()
+        print ('You chose CIDR block: ' + cidr)
+        initial_net_scan(cidr)
+        print_dict(state_dict)
 
