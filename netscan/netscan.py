@@ -48,6 +48,7 @@ import time
 import random
 import select
 import socket
+import csv
 
 ###########################################
 # NON FUNCTION/CLASS SCRIPT RELATED STUFF #
@@ -63,7 +64,7 @@ parser.add_argument('--udp' ,
     help='Use UDP SYN scanning for discovery - NOT IMPLEMENTED YET')
 parser.add_argument('--infile' ,
     action='store_true' ,
-    help='Use an existing file instead of scanning the network - NOT IMPLEMENTED YET')
+    help='Use an existing file instead of scanning the network')
 parser.add_argument('--outfile' ,
     action='store_true' ,
     help='Export stat data to a file - NOT IMPLEMENTED YET')
@@ -275,7 +276,6 @@ def print_dict(sd):
         print_rtt = y[0]
         print_count = y[1]
         print ("IP: " + str(print_ip) + "\t\tRTT: " + str(print_rtt) + "\t\t\tChange Count: " + str(print_count))
-        #print ("IP: " + str(x) + " \tRTT: " + y[0] + "\t"" \tChanges: " + y[1] )
 
 ############
 # MAIN RUN #
@@ -312,12 +312,6 @@ priviledges to run. Please run it as root in order to use it.
         initial_net_scan(cidr)
         print_dict(state_dict)
 
-    #if args.ntfs and args.quick:
-    #    print('You chose ntfs and quick flags!')
-    #    quick=True
-    #    runperf()
-    #    runsys()
-    #    runntfs()
 
     if args.cidr:
         cidr = input('What CIDR block would you like to use (use X.X.X.X/XXX format) : ')
@@ -327,3 +321,17 @@ priviledges to run. Please run it as root in order to use it.
         initial_net_scan(cidr)
         print_dict(state_dict)
 
+    if args.infile:
+        ifile = input('Please specify the explicit path to the file you want to import: ')
+        reader = csv.reader(open(ifile, 'r'))
+        state_dict = {}
+        for row in reader:
+            ip, rtt, count = row
+            state_dict[ip] = [rtt, count]
+
+        #for x, y in imprt.items(): 
+        #    ip = x
+        #    rtt = y[0]
+        #    count = y[1]
+        
+        print_dict(state_dict)
