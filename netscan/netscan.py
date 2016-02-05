@@ -29,7 +29,8 @@ console.
 
 ### NOTES ###
 
-IPAddress module will do a lot of the heavy lifting with regards to calculating subnet nodes using a CIDR (https://docs.python.org/3/howto/ipaddress.html)
+IPAddress module will do a lot of the heavy lifting with regards to calculating subnet nodes using a
+CIDR (https://docs.python.org/3/howto/ipaddress.html)
 
 '''
 
@@ -49,13 +50,19 @@ import random
 import select
 import socket
 import csv
+import threading
 
 ###########################################
 # NON FUNCTION/CLASS SCRIPT RELATED STUFF #
 ###########################################
 
 parser = argparse.ArgumentParser(description='Network scanning daemon to check for node state changes via TCP/UDP/ICMP. \
-    Default (no args) will run in the foreground using ICMP and broadcast domain for discovery and will store state data in memory')
+                                              Default (no arguments) will run in the foreground using ICMP and broadcast\
+                                              domain for discovery and will store state data in memory. Default (no arguments)\
+                                              uses true ICMP, so it\'s not usually routed. If you "ping scan" with NMAP that rides\
+                                              over TCP unless you specifically tell it to use the ICMP protocol, so if you are\
+                                              trying to scan a remote subnet, use the --tcp flag.')
+
 parser.add_argument('--tcp' ,
     action='store_true' ,
     help='Use TCP SYN scanning for discovery - NOT IMPLEMENTED YET')
@@ -64,19 +71,22 @@ parser.add_argument('--udp' ,
     help='Use UDP SYN scanning for discovery - NOT IMPLEMENTED YET')
 parser.add_argument('--infile' ,
     action='store_true' ,
-    help='Use an existing file instead of scanning the network')
+    help='Use an existing CSV file instead of scanning the network for initial discovery')
 parser.add_argument('--outfile' ,
     action='store_true' ,
-    help='Export stat data to a file - NOT IMPLEMENTED YET')
+    help='Export stat data to a CSV file - NOT IMPLEMENTED YET')
 parser.add_argument('--cidr' ,
     action='store_true' ,
     help='Use a CIDR block to generate scan range instead of using the broadcast domain')
+parser.add_argument('--host' ,
+    action='store_true' ,
+    help='Monitor the state of a single host - NOT IMPLEMENTED YET')
 parser.add_argument('--email' ,
     action='store_true' ,
-    help='Use an email to sent state change alerts to instead of the console - NOT IMPLEMENTED YET')
+    help='Use an email to send state change alerts to instead of the console - NOT IMPLEMENTED YET')
 parser.add_argument('--logging' ,
     action='store_true' ,
-    help='Log state changes to local logs instead of the console - NOT IMPLEMENTED YEY')
+    help='Log state changes to local logs instead of the console - NOT IMPLEMENTED YET')
 
 args = parser.parse_args()
 ip = ""
@@ -85,6 +95,7 @@ dd_nm = ""
 tout = .1
 iface = ""
 state_dict = {}
+freq = ""
 
 
 #############
@@ -296,42 +307,41 @@ priviledges to run. Please run it as root in order to use it.
 
 ''')
 
-    if sys.platform != 'darwin':
-        print ("This script was designed to run on OSX. Currently that is the only platform it will work on.")
-        exit(0)
-    
+    try:
 
-    title='Netscanner - Network state discovery and change alerter daemon'
-    output_title(title)
-    print()
-    print()
+        if sys.platform != 'darwin':
+            print ("This script was designed to run on OSX. Currently that is the only platform it will work on.")
+            exit(0)
 
-    if not len(sys.argv) > 1:
-        get_net_info()
-        print_net_info(cidr, ip, dd_nm)
-        initial_net_scan(cidr)
-        print_dict(state_dict)
+        title='Netscanner - Network state discovery and change alerter daemon'
+        output_title(title)
+        print()
+        print('Hit Ctrl+C to kill the deamon if it\'s running in the foreground')
+        print()
 
+        if not len(sys.argv) > 1:
+            get_net_info()
+            print_net_info(cidr, ip, dd_nm)
 
-    if args.cidr:
-        cidr = input('What CIDR block would you like to use (use X.X.X.X/XXX format) : ')
-        get_tout(tout)
-        print ()
-        print ('You chose CIDR block: ' + cidr)
-        initial_net_scan(cidr)
-        print_dict(state_dict)
+        if args.cidr:
+            cidr = input('What CIDR block would you like to use (use X.X.X.X/XXX format) : ')
+            get_tout(tout)
+            print ()
+            print ('You chose CIDR block: ' + cidr)
 
-    if args.infile:
-        ifile = input('Please specify the explicit path to the file you want to import: ')
-        reader = csv.reader(open(ifile, 'r'))
-        state_dict = {}
-        for row in reader:
-            ip, rtt, count = row
-            state_dict[ip] = [rtt, count]
-
-        #for x, y in imprt.items(): 
-        #    ip = x
-        #    rtt = y[0]
-        #    count = y[1]
+        if args.infile:
+            ifile = input('Please specify the explicit path to the file you want to import: ')
+            reader = csv.reader(open(ifile, 'r'))
+            state_dict = {}
+            for row in reader:
+                ip, rtt, count = row
+                state_dict[ip] = [rtt, count]
         
-        print_dict(state_dict)
+        while True:
+            initial_net_scan(cidr)
+            print_dict(state_dict)
+
+
+    except KeyboardInterrupt:
+        print ("You pressed Ctrl+C")
+        sys.exit()
