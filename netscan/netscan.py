@@ -119,7 +119,9 @@ def output_title(title):
 def get_tout(a):
     global tout
 
+    print()
     tout = input('What timeout would you like to use (in seconds and you can use decimal numbers): ')
+    print()
     
     return tout
 
@@ -319,6 +321,10 @@ priviledges to run. Please run it as root in order to use it.
         print('Hit Ctrl+C to kill the deamon if it\'s running in the foreground')
         print()
 
+        print()
+        freq = input('What frequency would you like the scanner to run (in seconds): ')
+        print()
+
         if not len(sys.argv) > 1:
             get_net_info()
             print_net_info(cidr, ip, dd_nm)
@@ -336,11 +342,15 @@ priviledges to run. Please run it as root in order to use it.
             for row in reader:
                 ip, rtt, count = row
                 state_dict[ip] = [rtt, count]
-        
+
+        print ()
+        input('Press Enter to start the scan')
+
         while True:
+            os.system('clear')
             initial_net_scan(cidr)
             print_dict(state_dict)
-
+            time.sleep(int(freq))
 
     except KeyboardInterrupt:
         print ("You pressed Ctrl+C")
