@@ -287,7 +287,7 @@ def redundant_net_scan(a):
 
     print ("Rescanning, this may take some time:")
     print ()
-    for x,y in a.items():
+    for x in net4.hosts():
         state_dict.update({x : [ping(str(x), float(tout)), 0]})
 
     return state_dict
@@ -364,12 +364,10 @@ priviledges to run. Please run it as root in order to use it.
         input('Press Enter to start the scan')
         os.system('clear')
         initial_net_scan(cidr)
-        print_dict(state_dict)
-        time.sleep(int(freq))
 
         while True:
             os.system('clear')
-            redundant_net_scan(state_dict)
+            #initial_net_scan(cidr)
             print_dict(state_dict)
             time.sleep(int(freq))
 
