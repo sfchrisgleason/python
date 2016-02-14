@@ -6,6 +6,10 @@
 
 #### WARNINGS:
 
+##### DO NOT JUST RUN THIS SCRIPT
+
+If you kick it off, it will detect and scan your entire network. This could mean trouble for you if you are on a network you don't own.
+
 netscan.py uses raw sockets, which require root access. This coupled with the fact that it currently will scan your entire broadcast domain if you just arbitrarily run it without any options means that it's currently not in a state to be used by people who don't know what it does. Eventually I will make it so you have to specify all the options you want for it to run, but for now don't use it unless you read through the script and see exactly what it does.
 
 #### Synopsis:
