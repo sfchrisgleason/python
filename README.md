@@ -16,7 +16,7 @@ It was developed on OSX, but could be easily ported to work on other platforms. 
 
 It will by default (if run with no options):
 
-1. Detect your IP and Subnet Mask, and generate a CODR block from that
+1. Detect your IP and Subnet Mask, and generate a CIDR block from that
 2. Scan that CIDR block using ICMP raw sockets
 3. Dump that info into a dictionary in memory to be tallied at a later time
 
