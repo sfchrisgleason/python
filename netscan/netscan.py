@@ -297,9 +297,7 @@ def redundant_net_scan(a):
         if type(rtt1).__name__ == "float" and type(rtt2).__name__ == "NoneType"\
         or type(rtt1).__name__ == "NoneType" and type(rtt2).__name__ == "float":
             print ("State changed for " + str(print_ip) + ". It went from " + str(rtt1) + " to " + str(rtt2) + ".")
-            inc += 1
-            count = y[1] + inc
-            inc = 0
+            count = y[1] + 1
             state_dict.update({x : [rtt2, count]})
             count = 0
             
