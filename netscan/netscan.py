@@ -96,6 +96,7 @@ tout = .1
 iface = ""
 state_dict = {}
 freq = ""
+count = 0
 
 
 #############
@@ -280,16 +281,29 @@ def redundant_net_scan(a):
 
     '''
     Function takes the state_dict generated from the initial_net_scan function
-    then scans the IP's again
+    then scans the IP's again an calculates if the state has changed
     '''
-
+    global count
     global state_dict
+    
 
     print ("Rescanning, this may take some time:")
     print ()
     for x,y in a.items():
-        state_dict.update({x : [ping(str(x), float(tout)), 0]})
-
+        print_ip = x
+        inc = 0
+        rtt1 = y[0]
+        rtt2 = ping(str(x), float(tout))
+        if type(rtt1).__name__ == "float" and type(rtt2).__name__ == "NoneType"\
+        or type(rtt1).__name__ == "NoneType" and type(rtt2).__name__ == "float":
+            print ("State changed for " + str(print_ip) + ". It went from " + str(rtt1) + " to " + str(rtt2) + ".")
+            inc += 1
+            count = y[1] + inc
+            inc = 0
+            state_dict.update({x : [rtt2, count]})
+            count = 0
+            
+    return count
     return state_dict
 
 
