@@ -10,7 +10,7 @@
 # Simple UDP/TCP Netscanner to monitor state changes on the network                #
 #==================================================================================#
 
-### DESCRIPTION ###
+### DESCRIPTION/SYNOPSIS ###
 
 This is a simple daemon that will allow you to scan a network range using ICMP, TCP or UDP and 
 store the information in either memory or a file so that it can be referenced at a specific interval
@@ -25,7 +25,19 @@ to use to store and retrive state data. I also want to add functions for logging
 alerts. But the first order of business is to get basic ICMP scanning and state alerting to the
 console.
 
+2-19-2016 - Handle the following Exceptions:
+
+OSError: [Errno 65] No route to host
+
+Fix --host parameter from changing state if node is up or down. Get initial scan to not count.
+
+Add Validation for things like out and infile locations, IP Format, etc.
+
 ### REQUIREMENTS ###
+
+Requires Python 3 and OSX to run. If you read the script carefully you could redesign for python 2
+and for other platforms. The OSX specific subprocess calls and the subnet mask conversion are really
+the only platform dependent code.
 
 ### NOTES ###
 
@@ -56,6 +68,13 @@ import threading
 # NON FUNCTION/CLASS SCRIPT RELATED STUFF #
 ###########################################
 
+
+if sys.platform != 'darwin':
+    print ("This script was designed to run on OSX. Currently that is the only platform it will work on.")
+    exit(0)
+
+
+
 parser = argparse.ArgumentParser(description='Network scanning daemon to check for node state changes via TCP/UDP/ICMP. \
                                               Default (no arguments) will run in the foreground using ICMP and broadcast\
                                               domain for discovery and will store state data in memory. Default (no arguments)\
@@ -74,13 +93,13 @@ parser.add_argument('--infile' ,
     help='Use an existing CSV file instead of scanning the network for initial discovery')
 parser.add_argument('--outfile' ,
     action='store_true' ,
-    help='Export stat data to a CSV file - NOT IMPLEMENTED YET')
+    help='Export stat data to a CSV file')
 parser.add_argument('--cidr' ,
     action='store_true' ,
     help='Use a CIDR block to generate scan range instead of using the broadcast domain')
 parser.add_argument('--host' ,
     action='store_true' ,
-    help='Monitor the state of a single host - NOT IMPLEMENTED YET')
+    help='Monitor the state of a single host')
 parser.add_argument('--email' ,
     action='store_true' ,
     help='Use an email to send state change alerts to instead of the console - NOT IMPLEMENTED YET')
@@ -97,7 +116,8 @@ iface = ""
 state_dict = {}
 freq = ""
 count = 0
-
+rtt = ""
+ofile = ""
 
 #############
 # FUNCTIONS #
@@ -260,7 +280,7 @@ def ping(addr, timeout=tout):
 def initial_net_scan(a):
 
     '''
-    Function takes cidr variable form get_net_info, creates a list of IP's
+    Function takes cidr variable from get_net_info, creates a list of IP's
     then scans them all using the ping function
     '''
 
@@ -319,6 +339,13 @@ def print_dict(sd):
         print_count = y[1]
         print ("IP: " + str(print_ip) + "\t\tRTT: " + str(print_rtt) + "\t\t\tChange Count: " + str(print_count))
 
+def csv_writer(ofile):
+    writer = csv.writer(open(ofile, 'w'))
+    for x,y in state_dict.items():
+        writer.writerow([x, y[0], y[1]])
+
+
+
 ############
 # MAIN RUN #
 ############
@@ -340,10 +367,6 @@ priviledges to run. Please run it as root in order to use it.
 
     try:
 
-        if sys.platform != 'darwin':
-            print ("This script was designed to run on OSX. Currently that is the only platform it will work on.")
-            exit(0)
-
         title='Netscanner - Network state discovery and change alerter daemon'
         output_title(title)
         print()
@@ -354,7 +377,7 @@ priviledges to run. Please run it as root in order to use it.
         freq = input('What frequency would you like the scanner to run (in seconds): ')
         print()
 
-        if not len(sys.argv) > 1:
+        if not len(sys.argv) > 1 or args.outfile and not len(sys.argv) > 2:
             get_net_info()
             print_net_info(cidr, ip, dd_nm)
 
@@ -370,19 +393,38 @@ priviledges to run. Please run it as root in order to use it.
             state_dict = {}
             for row in reader:
                 ip, rtt, count = row
+                if rtt == '':
+                    rtt = 'None'
                 state_dict[ip] = [rtt, count]
+
+        if args.outfile:
+            ofile = input('Please specify the explicit path to the file you want to export the data to: ')
+
+        if args.host:
+            host = input('What host would you like to scan (Use an IP in dotted decimal format X.X.X.X): ')
+            get_tout(tout)
+            rtt = ping(str(host), float(tout))
+            state_dict.update({host : [rtt, count]})
+            cidr = host + "/32"
+
 
         print ()
         input('Press Enter to start the scan')
-        os.system('clear')
-        initial_net_scan(cidr)
-        print_dict(state_dict)
-        time.sleep(int(freq))
+        if not args.infile:
+            os.system('clear')
+            initial_net_scan(cidr)
+            print_dict(state_dict)
+            if args.outfile:
+                csv_writer(ofile)
+            time.sleep(int(freq))
+
 
         while True:
             os.system('clear')
             redundant_net_scan(state_dict)
             print_dict(state_dict)
+            if args.outfile:
+                csv_writer(ofile)
             time.sleep(int(freq))
 
     except KeyboardInterrupt:
