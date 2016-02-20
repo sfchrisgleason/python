@@ -25,13 +25,10 @@ to use to store and retrive state data. I also want to add functions for logging
 alerts. But the first order of business is to get basic ICMP scanning and state alerting to the
 console.
 
-2-19-2016 - Handle the following Exceptions:
-
-OSError: [Errno 65] No route to host
-
+2-19-2016 - Handle the following Exceptions: OSError: [Errno 65] No route to host
 Fix --host parameter from changing state if node is up or down. Get initial scan to not count.
-
 Add Validation for things like out and infile locations, IP Format, etc.
+Fix email alerting so that it only sends out a single email per scan round.
 
 ### REQUIREMENTS ###
 
@@ -63,6 +60,7 @@ import select
 import socket
 import csv
 import threading
+import smtplib
 
 ###########################################
 # NON FUNCTION/CLASS SCRIPT RELATED STUFF #
@@ -75,35 +73,36 @@ if sys.platform != 'darwin':
 
 
 
-parser = argparse.ArgumentParser(description='Network scanning daemon to check for node state changes via TCP/UDP/ICMP. \
-                                              Default (no arguments) will run in the foreground using ICMP and broadcast\
-                                              domain for discovery and will store state data in memory. Default (no arguments)\
-                                              uses true ICMP, so it\'s not usually routed. If you "ping scan" with NMAP that rides\
-                                              over TCP unless you specifically tell it to use the ICMP protocol, so if you are\
-                                              trying to scan a remote subnet, use the --tcp flag.')
+parser = argparse.ArgumentParser(description='\
+    Network scanning daemon to check for node state changes via TCP/UDP/ICMP. \
+    Default (no arguments) will run in the foreground using ICMP and broadcast\
+    domain for discovery and will store state data in memory. Default (no arguments)\
+    uses true ICMP, so it\'s not usually routed. If you "ping scan" with NMAP that rides\
+    over TCP unless you specifically tell it to use the ICMP protocol, so if you are\
+    trying to scan a remote subnet, use the --tcp flag.')
 
-parser.add_argument('--tcp' ,
+parser.add_argument('-t', '--tcp' ,
     action='store_true' ,
     help='Use TCP SYN scanning for discovery - NOT IMPLEMENTED YET')
-parser.add_argument('--udp' ,
+parser.add_argument('-u', '--udp' ,
     action='store_true' ,
     help='Use UDP SYN scanning for discovery - NOT IMPLEMENTED YET')
-parser.add_argument('--infile' ,
+parser.add_argument('-i', '--infile' ,
     action='store_true' ,
     help='Use an existing CSV file instead of scanning the network for initial discovery')
-parser.add_argument('--outfile' ,
+parser.add_argument('-o', '--outfile' ,
     action='store_true' ,
     help='Export stat data to a CSV file')
-parser.add_argument('--cidr' ,
+parser.add_argument('-c', '--cidr' ,
     action='store_true' ,
     help='Use a CIDR block to generate scan range instead of using the broadcast domain')
-parser.add_argument('--host' ,
+parser.add_argument('-H', '--host' ,
     action='store_true' ,
     help='Monitor the state of a single host')
-parser.add_argument('--email' ,
+parser.add_argument('-e', '--email' ,
     action='store_true' ,
-    help='Use an email to send state change alerts to instead of the console - NOT IMPLEMENTED YET')
-parser.add_argument('--logging' ,
+    help='Use a gmail account to send state change alerts to a desired email')
+parser.add_argument('-l', '--logging' ,
     action='store_true' ,
     help='Log state changes to local logs instead of the console - NOT IMPLEMENTED YET')
 
@@ -118,6 +117,7 @@ freq = ""
 count = 0
 rtt = ""
 ofile = ""
+alert_total = ""
 
 #############
 # FUNCTIONS #
@@ -305,24 +305,31 @@ def redundant_net_scan(a):
     '''
     global count
     global state_dict
-    
+    global alert_total
 
     print ("Rescanning, this may take some time:")
     print ()
+    alert_total = ""
     for x,y in a.items():
         print_ip = x
-        inc = 0
         rtt1 = y[0]
         rtt2 = ping(str(x), float(tout))
         if type(rtt1).__name__ == "float" and type(rtt2).__name__ == "NoneType"\
         or type(rtt1).__name__ == "NoneType" and type(rtt2).__name__ == "float":
-            print ("State changed for " + str(print_ip) + ". It went from " + str(rtt1) + " to " + str(rtt2) + ".")
+            alert = "State changed for " + str(print_ip) + ". It went from " + str(rtt1) + " to " + str(rtt2) + "."
+            print(alert)
+            if args.email:
+                email_alert(toaddrs, username, password, alert)
             count = y[1] + 1
             state_dict.update({x : [rtt2, count]})
             count = 0
+            #alert_total+=str(alert)
+        #if alert_total != '' and args.email:
+            #email_alert(toaddrs, username, password, alert_total)
             
     return count
     return state_dict
+    return alert_total
 
 
 def print_dict(sd):
@@ -344,6 +351,15 @@ def csv_writer(ofile):
     for x,y in state_dict.items():
         writer.writerow([x, y[0], y[1]])
 
+def email_alert(toaddrs, username, password, alert):
+
+    fromaddr = 'netscanalert@chrisgleason.com'
+    msg = alert
+    server = smtplib.SMTP('smtp.gmail.com:587')
+    server.starttls()
+    server.login(username,password)
+    server.sendmail(fromaddr, toaddrs, msg)
+    server.quit()
 
 
 ############
@@ -377,9 +393,9 @@ priviledges to run. Please run it as root in order to use it.
         freq = input('What frequency would you like the scanner to run (in seconds): ')
         print()
 
-        if not len(sys.argv) > 1 or args.outfile and not len(sys.argv) > 2:
+        if not len(sys.argv) > 1 or args.outfile and not len(sys.argv) > 2\
+        or not len(sys.argv) > 2 and args.email:
             get_net_info()
-            print_net_info(cidr, ip, dd_nm)
 
         if args.cidr:
             cidr = input('What CIDR block would you like to use (use X.X.X.X/XXX format) : ')
@@ -407,6 +423,13 @@ priviledges to run. Please run it as root in order to use it.
             state_dict.update({host : [rtt, count]})
             cidr = host + "/32"
 
+        if args.email:
+            toaddrs  = input('What email are you sending alerts to: ')
+            username = input('What is your gmail username: ')
+            password = input('What is your gmail password (you may need an application specific password): ')
+
+
+        print_net_info(cidr, ip, dd_nm)
 
         print ()
         input('Press Enter to start the scan')
