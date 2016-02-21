@@ -19,17 +19,24 @@ also allow you to either set the process up as a deamon or just run it as a proc
 
 ### FUTURE WORK ###
 
-1-14-2016 - I am building this out as a basic ICMP scanner to store up and down states of specific
+1-14-2016 :
+
+I am building this out as a basic ICMP scanner to store up and down states of specific
 nodes. I plan to add functions to do TCP and UDP SYN scanning as well as allow for out and in files
 to use to store and retrive state data. I also want to add functions for logging and emailing state
 alerts. But the first order of business is to get basic ICMP scanning and state alerting to the
 console.
 
-2-19-2016 - Handle the following Exceptions: OSError: [Errno 65] No route to host
-Fix --host parameter from changing state if node is up or down. Get initial scan to not count.
-Add Validation for things like out and infile locations, IP Format, etc.
-Fix email alerting so that it only sends out a single email per scan round.
-Fix formatting of output table so tabs are lined up.
+2-19-2016 :
+
+- Handle the following Exceptions: 
+     * OSError: [Errno 65] No route to host
+- Fix --host parameter from changing state if node is up or down. Get initial scan to not count.
+- Fix email alerting so that it only sends out a single email per scan round.
+- Fix formatting of output table so tabs are lined up.
+- Add Validation for things like out and infile locations, IP Format, etc.
+- Add argument varaibles so argument values can be passed at runtime and script can be run in the
+backround.
 
 ### REQUIREMENTS ###
 
