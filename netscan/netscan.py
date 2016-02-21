@@ -101,10 +101,10 @@ parser.add_argument('-H', '--host' ,
     help='Monitor the state of a single host')
 parser.add_argument('-e', '--email' ,
     action='store_true' ,
-    help='Use a gmail account to send state change alerts to a desired email')
+    help='Use a gmail account to send state change alerts to a desired email as well as the console')
 parser.add_argument('-l', '--logging' ,
     action='store_true' ,
-    help='Log state changes to local logs instead of the console - NOT IMPLEMENTED YET')
+    help='Log state changes to system logs as well as the console')
 
 args = parser.parse_args()
 ip = ""
@@ -320,6 +320,8 @@ def redundant_net_scan(a):
             print(alert)
             if args.email:
                 email_alert(toaddrs, username, password, alert)
+            if args.logging:
+                log_alert(alert)
             count = y[1] + 1
             state_dict.update({x : [rtt2, count]})
             count = 0
@@ -361,6 +363,9 @@ def email_alert(toaddrs, username, password, alert):
     server.sendmail(fromaddr, toaddrs, msg)
     server.quit()
 
+def log_alert(alert):
+
+    subprocess.Popen("logger " + alert, shell=True, stdout=subprocess.PIPE)
 
 ############
 # MAIN RUN #
@@ -393,8 +398,13 @@ priviledges to run. Please run it as root in order to use it.
         freq = input('What frequency would you like the scanner to run (in seconds): ')
         print()
 
-        if not len(sys.argv) > 1 or args.outfile and not len(sys.argv) > 2\
-        or not len(sys.argv) > 2 and args.email:
+        #if not len(sys.argv) > 1\
+        #or args.outfile and not len(sys.argv) > 2\
+        #or not len(sys.argv) > 2 and args.email\:
+        if args.cidr or args.infile:
+            pass
+        #or not c in args or not infile in args or not i args:
+        else:
             get_net_info()
 
         if args.cidr:
@@ -428,8 +438,10 @@ priviledges to run. Please run it as root in order to use it.
             username = input('What is your gmail username: ')
             password = input('What is your gmail password (you may need an application specific password): ')
 
-
-        print_net_info(cidr, ip, dd_nm)
+        if args.cidr or args.infile:
+            pass
+        else:
+            print_net_info(cidr, ip, dd_nm)
 
         print ()
         input('Press Enter to start the scan')
