@@ -29,6 +29,7 @@ console.
 Fix --host parameter from changing state if node is up or down. Get initial scan to not count.
 Add Validation for things like out and infile locations, IP Format, etc.
 Fix email alerting so that it only sends out a single email per scan round.
+Fix formatting of output table so tabs are lined up.
 
 ### REQUIREMENTS ###
 
@@ -314,6 +315,7 @@ def redundant_net_scan(a):
         print_ip = x
         rtt1 = y[0]
         rtt2 = ping(str(x), float(tout))
+        count = y[1]
         if type(rtt1).__name__ == "float" and type(rtt2).__name__ == "NoneType"\
         or type(rtt1).__name__ == "NoneType" and type(rtt2).__name__ == "float":
             alert = "State changed for " + str(print_ip) + ". It went from " + str(rtt1) + " to " + str(rtt2) + "."
@@ -328,6 +330,8 @@ def redundant_net_scan(a):
             #alert_total+=str(alert)
         #if alert_total != '' and args.email:
             #email_alert(toaddrs, username, password, alert_total)
+        else:
+            state_dict.update({x : [rtt2, count]})
             
     return count
     return state_dict
@@ -398,12 +402,8 @@ priviledges to run. Please run it as root in order to use it.
         freq = input('What frequency would you like the scanner to run (in seconds): ')
         print()
 
-        #if not len(sys.argv) > 1\
-        #or args.outfile and not len(sys.argv) > 2\
-        #or not len(sys.argv) > 2 and args.email\:
         if args.cidr or args.infile:
             pass
-        #or not c in args or not infile in args or not i args:
         else:
             get_net_info()
 
