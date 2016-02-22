@@ -15,7 +15,7 @@
 This is a simple daemon that will allow you to scan a network range using ICMP, TCP or UDP and 
 store the information in either memory or a file so that it can be referenced at a specific interval
 for state changes. It will allow you to log alerts or email them out to a specific email. It will
-also allow you to either set the process up as a deamon or just run it as a process.
+also, eventually allow you to run it in the background, once I finish up the argparse variables...
 
 ### FUTURE WORK ###
 
@@ -48,6 +48,19 @@ the only platform dependent code.
 
 IPAddress module will do a lot of the heavy lifting with regards to calculating subnet nodes using a
 CIDR (https://docs.python.org/3/howto/ipaddress.html)
+
+Seems like the socket generator has a hard time keeping up if the scanner runs to fast to often. Not
+sure if it's flood protection or the TCP stack coming unravelled. I haven't done any packet filtering to
+see what's happening at the packet level except to make sure the original scnaner is indeed sending
+raw ICMP, but I did find that if I set the time out too low and the scann frequency too low, that
+eventually the scanner will halt with a no route to host error. I found the sweet spot is:
+
+timeout > .05 seconds
+frequency > 30 seconds
+
+When running with these threshholds the scanner will run continuously with few issues. If you're
+scanning larger networks, it may make sense to lower the timeout. I find it works fine at .01 but will
+eventually fail if you scann to often, so set the frequency higher if you're scanning large subnets.
 
 '''
 
@@ -311,6 +324,7 @@ def redundant_net_scan(a):
     Function takes the state_dict generated from the initial_net_scan function
     then scans the IP's again an calculates if the state has changed
     '''
+
     global count
     global state_dict
     global alert_total
@@ -325,21 +339,23 @@ def redundant_net_scan(a):
         count = y[1]
         if type(rtt1).__name__ == "float" and type(rtt2).__name__ == "NoneType"\
         or type(rtt1).__name__ == "NoneType" and type(rtt2).__name__ == "float":
-            alert = "State changed for " + str(print_ip) + ". It went from " + str(rtt1) + " to " + str(rtt2) + "."
-            print(alert)
-            if args.email:
-                email_alert(toaddrs, username, password, alert)
-            if args.logging:
-                log_alert(alert)
+            alert = "State changed for " + str(print_ip) + ". It went from " + str(rtt1) + " to " + str(rtt2) + ".\n"
+            alert_total+=alert
             count = y[1] + 1
             state_dict.update({x : [rtt2, count]})
             count = 0
-            #alert_total+=str(alert)
-        #if alert_total != '' and args.email:
-            #email_alert(toaddrs, username, password, alert_total)
         else:
             state_dict.update({x : [rtt2, count]})
             
+    if args.logging:
+        #print(alert_total)
+        log_alert(alert_total)
+
+    if args.email:
+        email_alert(toaddrs, username, password, alert)
+
+    print(alert_total)
+
     return count
     return state_dict
     return alert_total
