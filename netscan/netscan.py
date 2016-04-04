@@ -38,6 +38,11 @@ console.
 - Add argument varaibles so argument values can be passed at runtime and script can be run in the
 backround.
 
+4-4-2016 :
+
+Add scan finish statistics, wether it crashes or user kills it with Ctrl+c, output scann settings
+Number of times scanned and final version of DB with a close message.
+
 ### REQUIREMENTS ###
 
 Requires Python 3 and OSX to run. If you read the script carefully you could redesign for python 2
@@ -139,6 +144,7 @@ count = 0
 rtt = ""
 ofile = ""
 alert_total = ""
+totalruns = 0
 
 #############
 # FUNCTIONS #
@@ -159,6 +165,11 @@ def output_title(title):
     print('=' * titlelen)
 
 def get_tout(a):
+
+    '''
+    Function to solicit timeout from the user
+    '''
+
     global tout
 
     print()
@@ -168,6 +179,15 @@ def get_tout(a):
     return tout
 
 def get_net_size(netmask):
+    
+    '''
+    Function that helps convert netmask and IP into CIDR block.
+    This code was borrowed. I can tell that it turns the inegerized octet of the Hex NetMask
+    into a binary number that is then pumped into zfill and stripped of zeros. How it
+    actually converts this into a CIDR block I'm not entirely sure yet. I'll figure it out
+    later.
+    '''
+
     binary_str = ''
     for octet in netmask:
         binary_str += bin(int(octet))[2:].zfill(8)
@@ -305,6 +325,7 @@ def initial_net_scan(a):
     then scans them all using the ping function
     '''
 
+    global totalruns
     global state_dict
 
     net4 = ipaddress.ip_network(a)
@@ -316,6 +337,9 @@ def initial_net_scan(a):
     for x in net4.hosts():
         state_dict.update({x : [ping(str(x), float(tout)), 0]})
 
+    totalruns += 1
+
+    return totalruns
     return state_dict
 
 def redundant_net_scan(a):
@@ -325,6 +349,7 @@ def redundant_net_scan(a):
     then scans the IP's again an calculates if the state has changed
     '''
 
+    global totalruns
     global count
     global state_dict
     global alert_total
@@ -352,14 +377,16 @@ def redundant_net_scan(a):
         log_alert(alert_total)
 
     if args.email:
-        email_alert(toaddrs, username, password, alert)
+        email_alert(toaddrs, username, password, alert_total)
 
     print(alert_total)
+
+    totalruns += 1
 
     return count
     return state_dict
     return alert_total
-
+    return totalruns
 
 def print_dict(sd):
 
@@ -376,14 +403,23 @@ def print_dict(sd):
         print ("IP: " + str(print_ip) + "\t\tRTT: " + str(print_rtt) + "\t\t\tChange Count: " + str(print_count))
 
 def csv_writer(ofile):
+
+    '''
+    Function to take State Dictionary and output to to CSV file
+    '''
+
     writer = csv.writer(open(ofile, 'w'))
     for x,y in state_dict.items():
         writer.writerow([x, y[0], y[1]])
 
-def email_alert(toaddrs, username, password, alert):
+def email_alert(toaddrs, username, password, alerti_total):
+
+    '''
+    Fucntion to send state change list to designated email
+    '''
 
     fromaddr = 'netscanalert@chrisgleason.com'
-    msg = alert
+    msg = alert_total
     server = smtplib.SMTP('smtp.gmail.com:587')
     server.starttls()
     server.login(username,password)
@@ -391,6 +427,10 @@ def email_alert(toaddrs, username, password, alert):
     server.quit()
 
 def log_alert(alert):
+
+    '''
+    Function to take state change list and log in syslog
+    '''
 
     subprocess.Popen("logger " + alert, shell=True, stdout=subprocess.PIPE)
 
@@ -486,5 +526,30 @@ priviledges to run. Please run it as root in order to use it.
             time.sleep(int(freq))
 
     except KeyboardInterrupt:
+        print ()
+        print ("===================================================================================")
+        print ()
+        print_dict(state_dict)
+        print ()
+        print ("===================================================================================")
+        print ()
         print ("You pressed Ctrl+C")
+        print ()
+        print ("Script ran through " + str(totalruns) + " cycles, every " + str(freq) + " seconds.")
+        print ()
+        print ("The final data set is above:")
         sys.exit()
+
+    except OSError as e:
+        print ()
+        print ('Script crashed')
+        print ('Dumping state dict')
+        print ('====================================================================================')
+        print_dict(state_dict)
+        print ()
+        print ('There was an OS Error exception, most likely a no route to host. for now, I\'m just')
+        print ('dumping the last version of the state dictionary and exiting.')
+        print ()
+        print ('If you\'re seeing this error a lot, try changing the frequency to at least 15 seconds, and')
+        print ('set the timeout to at least .1 for a trial. If it stops, you can tune it down. If it keeps')
+        print ('failing, then you should increase both thresholds until it stops')
