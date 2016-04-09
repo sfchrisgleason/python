@@ -87,6 +87,7 @@ import socket
 import csv
 import threading
 import smtplib
+from datetime import datetime
 
 ###########################################
 # NON FUNCTION/CLASS SCRIPT RELATED STUFF #
@@ -96,8 +97,6 @@ import smtplib
 if sys.platform != 'darwin':
     print ("This script was designed to run on OSX. Currently that is the only platform it will work on.")
     exit(0)
-
-
 
 parser = argparse.ArgumentParser(description='\
     Network scanning daemon to check for node state changes via TCP/UDP/ICMP. \
@@ -145,6 +144,7 @@ rtt = ""
 ofile = ""
 alert_total = ""
 totalruns = 0
+t1 = datetime.now()
 
 #############
 # FUNCTIONS #
@@ -318,6 +318,22 @@ def ping(addr, timeout=tout):
             if packet == b'\0\0' + chk(unchecked) + payload:
                 return time.time() - start
 
+
+#def tcp_scan(addr, timeout=tout):
+#
+#    '''
+#    Function for scanning using TCP instead of ICMP
+#    '''
+#
+#    port = input('What port would you like to use for scanning? : ')
+#
+#    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+#        result = sock.connect_ex((remoteServerIP, port))
+#        if result == 0:
+#            print "Port {}: \t Open".format(port)
+#        sock.close()
+
+
 def initial_net_scan(a):
 
     '''
@@ -334,8 +350,9 @@ def initial_net_scan(a):
     print ()
     print ("Please be patient, this may take some time:")
     print ()
-    for x in net4.hosts():
-        state_dict.update({x : [ping(str(x), float(tout)), 0]})
+    if not (args.tcp) and not (args.udp):
+        for x in net4.hosts():
+            state_dict.update({x : [ping(str(x), float(tout)), 0]})
 
     totalruns += 1
 
@@ -526,6 +543,8 @@ priviledges to run. Please run it as root in order to use it.
             time.sleep(int(freq))
 
     except KeyboardInterrupt:
+        t2 = datetime.now()
+        timetotal = t2 - t1
         print ()
         print ("===================================================================================")
         print ()
@@ -537,19 +556,31 @@ priviledges to run. Please run it as root in order to use it.
         print ()
         print ("Script ran through " + str(totalruns) + " cycles, every " + str(freq) + " seconds.")
         print ()
+        print ("Script ran for a total of " + str(timetotal))
+        print ()
         print ("The final data set is above:")
         sys.exit()
 
     except OSError as e:
+        t2 = datetime.now()
+        timetotal = t2 - t1
         print ()
         print ('Script crashed')
         print ('Dumping state dict')
+        print ()
         print ('====================================================================================')
+        print ()
         print_dict(state_dict)
+        print ()
+        print ('====================================================================================')
         print ()
         print ('There was an OS Error exception, most likely a no route to host. for now, I\'m just')
         print ('dumping the last version of the state dictionary and exiting.')
         print ()
-        print ('If you\'re seeing this error a lot, try changing the frequency to at least 15 seconds, and')
+        print ("Script ran through " + str(totalruns) + " cycles, every " + str(freq) + " seconds.")
+        print ()
+        print ("Script ran for a total of " + str(timetotal))
+        print ()
+        print ('If you\'re seeing this error a lot, try changing the frequency to at least 30 seconds, and')
         print ('set the timeout to at least .1 for a trial. If it stops, you can tune it down. If it keeps')
         print ('failing, then you should increase both thresholds until it stops')
