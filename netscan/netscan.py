@@ -93,6 +93,13 @@ from datetime import datetime
 # NON FUNCTION/CLASS SCRIPT RELATED STUFF #
 ###########################################
 
+if os.geteuid() != 0:
+        exit('''
+
+This program creates and uses raw sockets which require root\n\
+priviledges to run. Please run it as root in order to use it.
+
+''')
 
 if sys.platform != 'darwin':
     print ("This script was designed to run on OSX. Currently that is the only platform it will work on.")
@@ -299,7 +306,7 @@ def ping(addr, timeout=tout):
     '''
     This Function creates a raw socket using ICMP, then connects to an address
     using that socket, recording the time it takes to return. You can specify
-    timeout in the functions parameter declaration.
+    timeout in the functions arguments. Currently uses user input.
     '''
 
     with socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_ICMP) as conn:
@@ -319,19 +326,19 @@ def ping(addr, timeout=tout):
                 return time.time() - start
 
 
-#def tcp_scan(addr, timeout=tout):
-#
-#    '''
-#    Function for scanning using TCP instead of ICMP
-#    '''
-#
-#    port = input('What port would you like to use for scanning? : ')
-#
-#    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-#        result = sock.connect_ex((remoteServerIP, port))
-#        if result == 0:
-#            print "Port {}: \t Open".format(port)
-#        sock.close()
+def tcp_scan(addr, port, timeout=tout):
+
+    '''
+    Function for scanning with TCP
+    '''
+
+    start = time.time()
+    while max(0, start + timeout - time.time()):
+        s= socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        result = s.connect_ex((addr, port))
+        s.close()
+        if result == 0:
+            return time.time() - start
 
 
 def initial_net_scan(a):
@@ -340,7 +347,8 @@ def initial_net_scan(a):
     Function takes cidr variable from get_net_info, creates a list of IP's
     then scans them all using the ping function
     '''
-
+    if args.tcp:
+        port = input('What port would you like to use to scan against? : ')
     global totalruns
     global state_dict
 
@@ -353,6 +361,9 @@ def initial_net_scan(a):
     if not (args.tcp) and not (args.udp):
         for x in net4.hosts():
             state_dict.update({x : [ping(str(x), float(tout)), 0]})
+    if args.tcp:
+        for x in net4.hosts():
+            state_dict.update({x : [tcp_scan(str(x), int(port)), 0]})
 
     totalruns += 1
 
@@ -462,13 +473,6 @@ if __name__ == "__main__":
     Main Code run
     '''
 
-    if os.geteuid() != 0:
-        exit('''
-
-This program creates and uses raw sockets which require root\n\
-priviledges to run. Please run it as root in order to use it.
-
-''')
 
     try:
 
