@@ -333,7 +333,7 @@ def tcp_scan(addr, port, timeout=tout):
     '''
 
     start = time.time()
-    while max(0, start + timeout - time.time()):
+    while start - time.time() > timeout:
         s= socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         result = s.connect_ex((addr, port))
         s.close()
