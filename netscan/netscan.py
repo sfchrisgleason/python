@@ -43,6 +43,11 @@ backround.
 Add scan finish statistics, wether it crashes or user kills it with Ctrl+c, output scann settings
 Number of times scanned and final version of DB with a close message.
 
+5-7-2016 :
+
+Add a quiet option, so if they actually want to demonize it it will stay quiet and won't dump active
+data to the terminal. Then once killed or crashed it will print out the final state dict.
+
 ### REQUIREMENTS ###
 
 Requires Python 3 and OSX to run. If you read the script carefully you could redesign for python 2
@@ -119,6 +124,9 @@ parser.add_argument('-t', '--tcp' ,
 parser.add_argument('-u', '--udp' ,
     action='store_true' ,
     help='Use UDP SYN scanning for discovery - NOT IMPLEMENTED YET')
+parser.add_argument('-q', '--quiet' ,
+    action='store_true' ,
+    help='Use to demonize netscanner for background processing - NOT IMPLEMENTED YET')
 parser.add_argument('-i', '--infile' ,
     action='store_true' ,
     help='Use an existing CSV file instead of scanning the network for initial discovery')
@@ -363,7 +371,7 @@ def initial_net_scan(a):
             state_dict.update({x : [ping(str(x), float(tout)), 0]})
     if args.tcp:
         for x in net4.hosts():
-            state_dict.update({x : [tcp_scan(str(x), int(port)), 0]})
+            state_dict.update({x : [tcp_scan(str(x), float(tout)), 0]})
 
     totalruns += 1
 
