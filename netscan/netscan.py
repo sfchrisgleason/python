@@ -334,19 +334,21 @@ def ping(addr, timeout=tout):
                 return time.time() - start
 
 
-def tcp_scan(addr, port, timeout=tout):
+def tcp_scan(addr, port):
 
     '''
     Function for scanning with TCP
     '''
+    global result
 
-    start = time.time()
-    while start - time.time() > timeout:
-        s= socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        result = s.connect_ex((addr, port))
-        s.close()
-        if result == 0:
-            return time.time() - start
+    #start = time.time()
+    #while start - time.time() > timeout:
+    s= socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    result = s.connect_ex((addr, port))
+    s.close()
+    return result
+    #    if result == 0:
+    #        return time.time() - start
 
 
 def initial_net_scan(a):
@@ -497,8 +499,9 @@ if __name__ == "__main__":
 
         if args.tcp or args.udp:
             port = input('What port would you like to use to scan against? : ')
+            print ()
 
-        if (args.cidr) or (args.infile) or (args.host):
+        if args.cidr or args.infile or args.host:
             pass
         else:
             get_net_info()
@@ -531,10 +534,18 @@ if __name__ == "__main__":
                 #cidr = host + "/32"
             if args.tcp:
                 start = time.time()
-                if tcp_scan(str(host), int(port), float(tout)) != 0:
+                tcp_scan(str(host), int(port))
+                if result != 0:
+                   print ('Not Zero!')
+                   echo = tcp_scan(str(host), int(port))
+                   print (echo)
+                   time.sleep(5)
                    rtt = None
                 else:
+                   print ('Is Zero! YAY!')
                    rtt = time.time() - start
+                   print (rtt)
+                   time.sleep(5)
                 state_dict.update({host : [rtt, count]})
             cidr = host + "/32"
 
