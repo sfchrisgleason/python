@@ -379,7 +379,7 @@ def initial_net_scan(a):
     return totalruns
     return state_dict
 
-def redundant_net_scan(a):
+def redundant_net_scan(a, host, port):
 
     '''
     Function takes the state_dict generated from the initial_net_scan function
@@ -397,7 +397,17 @@ def redundant_net_scan(a):
     for x,y in a.items():
         print_ip = x
         rtt1 = y[0]
-        rtt2 = ping(str(x), float(tout))
+        if args.tcp:
+            start = time.time()
+            tcp_scan(str(host), int(port))
+            if result != 0:
+                rtt2 = None
+            else:
+                rtt2 = time.time() - start
+            print ('TCP USED!')
+        else:
+            rtt2 = ping(str(x), float(tout))
+            print ('ICMP USED')
         count = y[1]
         if type(rtt1).__name__ == "float" and type(rtt2).__name__ == "NoneType"\
         or type(rtt1).__name__ == "NoneType" and type(rtt2).__name__ == "float":
@@ -526,26 +536,18 @@ if __name__ == "__main__":
             ofile = input('Please specify the explicit path to the file you want to export the data to: ')
 
         if args.host:
+            global host
             host = input('What host would you like to scan (Use an IP in dotted decimal format X.X.X.X): ')
-            #get_tout(tout)
             if not (args.tcp) and not (args.udp):
                 rtt = ping(str(host), float(tout))
                 state_dict.update({host : [rtt, count]})
-                #cidr = host + "/32"
             if args.tcp:
                 start = time.time()
                 tcp_scan(str(host), int(port))
                 if result != 0:
-                   print ('Not Zero!')
-                   echo = tcp_scan(str(host), int(port))
-                   print (echo)
-                   time.sleep(5)
                    rtt = None
                 else:
-                   print ('Is Zero! YAY!')
                    rtt = time.time() - start
-                   print (rtt)
-                   time.sleep(5)
                 state_dict.update({host : [rtt, count]})
             cidr = host + "/32"
 
@@ -572,7 +574,7 @@ if __name__ == "__main__":
 
         while True:
             os.system('clear')
-            redundant_net_scan(state_dict)
+            redundant_net_scan(state_dict, host, port)
             print_dict(state_dict)
             if args.outfile:
                 csv_writer(ofile)
@@ -590,9 +592,9 @@ if __name__ == "__main__":
         print ()
         print ("You pressed Ctrl+C")
         print ()
-        print ("Script ran through " + str(totalruns) + " cycles, every " + str(freq) + " seconds.")
+        print ("Your scan ran through " + str(totalruns) + " cycles, every " + str(freq) + " seconds.")
         print ()
-        print ("Script ran for a total of " + str(timetotal))
+        print ("The scan ran for a total of " + str(timetotal))
         print ()
         print ("The final data set is above:")
         sys.exit()
@@ -613,9 +615,9 @@ if __name__ == "__main__":
         print ('There was an OS Error exception, most likely a no route to host. for now, I\'m just')
         print ('dumping the last version of the state dictionary and exiting.')
         print ()
-        print ("Script ran through " + str(totalruns) + " cycles, every " + str(freq) + " seconds.")
+        print ("Your scan ran through " + str(totalruns) + " cycles, every " + str(freq) + " seconds.")
         print ()
-        print ("Script ran for a total of " + str(timetotal))
+        print ("The scan ran for a total of " + str(timetotal))
         print ()
         print ('If you\'re seeing this error a lot, try changing the frequency to at least 30 seconds, and')
         print ('set the timeout to at least .1 for a trial. If it stops, you can tune it down. If it keeps')
