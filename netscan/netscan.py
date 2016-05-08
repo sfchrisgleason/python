@@ -355,8 +355,7 @@ def initial_net_scan(a):
     Function takes cidr variable from get_net_info, creates a list of IP's
     then scans them all using the ping function
     '''
-    if args.tcp:
-        port = input('What port would you like to use to scan against? : ')
+
     global totalruns
     global state_dict
 
@@ -371,7 +370,7 @@ def initial_net_scan(a):
             state_dict.update({x : [ping(str(x), float(tout)), 0]})
     if args.tcp:
         for x in net4.hosts():
-            state_dict.update({x : [tcp_scan(str(x), float(tout)), 0]})
+            state_dict.update({x : [tcp_scan(str(x), int(port)), 0]})
 
     totalruns += 1
 
@@ -451,7 +450,7 @@ def csv_writer(ofile):
 def email_alert(toaddrs, username, password, alerti_total):
 
     '''
-    Fucntion to send state change list to designated email
+    Function to send state change list to designated email
     '''
 
     fromaddr = 'netscanalert@chrisgleason.com'
@@ -494,14 +493,19 @@ if __name__ == "__main__":
         freq = input('What frequency would you like the scanner to run (in seconds): ')
         print()
 
-        if args.cidr or args.infile:
+        get_tout(tout)
+
+        if args.tcp or args.udp:
+            port = input('What port would you like to use to scan against? : ')
+
+        if (args.cidr) or (args.infile) or (args.host):
             pass
         else:
             get_net_info()
 
         if args.cidr:
             cidr = input('What CIDR block would you like to use (use X.X.X.X/XXX format) : ')
-            get_tout(tout)
+            #get_tout(tout)
             print ()
             print ('You chose CIDR block: ' + cidr)
 
@@ -520,9 +524,18 @@ if __name__ == "__main__":
 
         if args.host:
             host = input('What host would you like to scan (Use an IP in dotted decimal format X.X.X.X): ')
-            get_tout(tout)
-            rtt = ping(str(host), float(tout))
-            state_dict.update({host : [rtt, count]})
+            #get_tout(tout)
+            if not (args.tcp) and not (args.udp):
+                rtt = ping(str(host), float(tout))
+                state_dict.update({host : [rtt, count]})
+                #cidr = host + "/32"
+            if args.tcp:
+                start = time.time()
+                if tcp_scan(str(host), int(port), float(tout)) != 0:
+                   rtt = None
+                else:
+                   rtt = time.time() - start
+                state_dict.update({host : [rtt, count]})
             cidr = host + "/32"
 
         if args.email:
