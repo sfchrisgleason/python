@@ -341,14 +341,10 @@ def tcp_scan(addr, port):
     '''
     global result
 
-    #start = time.time()
-    #while start - time.time() > timeout:
     s= socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     result = s.connect_ex((addr, port))
     s.close()
     return result
-    #    if result == 0:
-    #        return time.time() - start
 
 
 def initial_net_scan(a):
@@ -372,7 +368,16 @@ def initial_net_scan(a):
             state_dict.update({x : [ping(str(x), float(tout)), 0]})
     if args.tcp:
         for x in net4.hosts():
-            state_dict.update({x : [tcp_scan(str(x), int(port)), 0]})
+            addr = x
+            start = time.time()
+            tcp_scan(str(addr), int(port))
+            if result != 0:
+                rtt = None
+            else:
+                rtt = time.time() - start
+            print ('TCP USED!')
+            state_dict.update({x : [rtt, 0]})
+
 
     totalruns += 1
 
@@ -510,6 +515,8 @@ if __name__ == "__main__":
         if args.tcp or args.udp:
             port = input('What port would you like to use to scan against? : ')
             print ()
+        else:
+            port = 0
 
         if args.cidr or args.infile or args.host:
             pass
@@ -550,6 +557,8 @@ if __name__ == "__main__":
                    rtt = time.time() - start
                 state_dict.update({host : [rtt, count]})
             cidr = host + "/32"
+        else:
+            host = '0.0.0.0'
 
         if args.email:
             toaddrs  = input('What email are you sending alerts to: ')
@@ -570,7 +579,6 @@ if __name__ == "__main__":
             if args.outfile:
                 csv_writer(ofile)
             time.sleep(int(freq))
-
 
         while True:
             os.system('clear')
