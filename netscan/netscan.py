@@ -7,7 +7,7 @@
 # Version:  1.0                                                                    #
 # COMMENT: NetScan deamon to monitor state changes for network nodes               #
 #==================================================================================#
-# Simple UDP/TCP Netscanner to monitor state changes on the network                #
+# Simple ICMP/TCP Netscanner to monitor state changes on the network                #
 #==================================================================================#
 
 ### DESCRIPTION/SYNOPSIS ###
@@ -120,10 +120,7 @@ parser = argparse.ArgumentParser(description='\
 
 parser.add_argument('-t', '--tcp' ,
     action='store_true' ,
-    help='Use TCP SYN scanning for discovery - NOT IMPLEMENTED YET')
-parser.add_argument('-u', '--udp' ,
-    action='store_true' ,
-    help='Use UDP SYN scanning for discovery - NOT IMPLEMENTED YET')
+    help='Use TCP Port Knock scanning for discovery')
 parser.add_argument('-q', '--quiet' ,
     action='store_true' ,
     help='Use to demonize netscanner for background processing - NOT IMPLEMENTED YET')
@@ -224,7 +221,7 @@ def get_net_info():
     global tout
 
     iface = input('What interface would you like to use: ')
-    get_tout(tout)
+    #get_tout(tout)
 
     # Get IP from subprocess
 
@@ -334,7 +331,7 @@ def ping(addr, timeout=tout):
                 return time.time() - start
 
 
-def tcp_scan(addr, port):
+def tcp_scan(addr, port, timeout=tout):
 
     '''
     Function for scanning with TCP
@@ -342,7 +339,9 @@ def tcp_scan(addr, port):
     global result
 
     s= socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.settimeout(timeout)
     result = s.connect_ex((addr, port))
+    s.settimeout(None)
     s.close()
     return result
 
@@ -368,16 +367,24 @@ def initial_net_scan(a):
             state_dict.update({x : [ping(str(x), float(tout)), 0]})
     if args.tcp:
         for x in net4.hosts():
-            addr = x
-            start = time.time()
-            tcp_scan(str(addr), int(port))
-            if result != 0:
-                rtt = None
-            else:
-                rtt = time.time() - start
-            print ('TCP USED!')
-            state_dict.update({x : [rtt, 0]})
+            state_dict.update({x : [0, 0]})
+            for a,b in state_dict.items():
+                start = time.time()
+                tcp_scan(str(a), int(port), float(tout))
+                if result != 0:
+                    rtt = None
+                else:
+                    rtt = time.time() - start
+                state_dict.update({a : [rtt, 0]})
 
+
+#            start = time.time()
+#            tcp_scan(str(host), int(port))
+#            if result != 0:
+#                rtt2 = None
+#            else:
+#                rtt2 = time.time() - start
+ 
 
     totalruns += 1
 
