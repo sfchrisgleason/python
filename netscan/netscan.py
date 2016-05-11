@@ -120,7 +120,7 @@ parser = argparse.ArgumentParser(description='\
 
 parser.add_argument('-t', '--tcp' ,
     action='store_true' ,
-    help='Use TCP Port Knock scanning for discovery')
+    help='Use TCP SYN/ACK scanning for discovery')
 parser.add_argument('-q', '--quiet' ,
     action='store_true' ,
     help='Use to demonize netscanner for background processing - NOT IMPLEMENTED YET')
@@ -341,6 +341,7 @@ def tcp_scan(addr, port, timeout=tout):
     s= socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.settimeout(timeout)
     result = s.connect_ex((addr, port))
+    #print ('Scanning - ' + addr)
     s.settimeout(None)
     s.close()
     return result
@@ -362,20 +363,20 @@ def initial_net_scan(a):
     print ()
     print ("Please be patient, this may take some time:")
     print ()
-    if not (args.tcp) and not (args.udp):
+    if not (args.tcp): # and not (args.udp):
         for x in net4.hosts():
             state_dict.update({x : [ping(str(x), float(tout)), 0]})
     if args.tcp:
         for x in net4.hosts():
-            state_dict.update({x : [0, 0]})
-            for a,b in state_dict.items():
-                start = time.time()
-                tcp_scan(str(a), int(port), float(tout))
-                if result != 0:
-                    rtt = None
-                else:
-                    rtt = time.time() - start
-                state_dict.update({a : [rtt, 0]})
+            #state_dict.update({x : [0, 0]})
+            #for a,b in state_dict.items():
+            start = time.time()
+            tcp_scan(str(x), int(port), float(tout))
+            if result != 0:
+                rtt = None
+            else:
+                rtt = time.time() - start
+            state_dict.update({x : [rtt, 0]})
 
 
 #            start = time.time()
@@ -411,15 +412,13 @@ def redundant_net_scan(a, host, port):
         rtt1 = y[0]
         if args.tcp:
             start = time.time()
-            tcp_scan(str(host), int(port))
+            tcp_scan(str(x), int(port), float(tout))
             if result != 0:
                 rtt2 = None
             else:
                 rtt2 = time.time() - start
-            print ('TCP USED!')
         else:
             rtt2 = ping(str(x), float(tout))
-            print ('ICMP USED')
         count = y[1]
         if type(rtt1).__name__ == "float" and type(rtt2).__name__ == "NoneType"\
         or type(rtt1).__name__ == "NoneType" and type(rtt2).__name__ == "float":
@@ -519,7 +518,7 @@ if __name__ == "__main__":
 
         get_tout(tout)
 
-        if args.tcp or args.udp:
+        if args.tcp: # or args.udp:
             port = input('What port would you like to use to scan against? : ')
             print ()
         else:
@@ -552,7 +551,7 @@ if __name__ == "__main__":
         if args.host:
             global host
             host = input('What host would you like to scan (Use an IP in dotted decimal format X.X.X.X): ')
-            if not (args.tcp) and not (args.udp):
+            if not (args.tcp): # and not (args.udp):
                 rtt = ping(str(host), float(tout))
                 state_dict.update({host : [rtt, count]})
             if args.tcp:
