@@ -36,18 +36,27 @@ NMAP that rides over TCP unless you specifically tell it to use the ICMP
 protocol, so if you are trying to scan a remote subnet, use the --tcp flag.
 
 optional arguments:
+
   -h, --help     show this help message and exit
+
   -t, --tcp      Use TCP SYN/ACK scanning for discovery
+
   -q, --quiet    Use to demonize netscanner for background processing - NOT
                  IMPLEMENTED YET
+
   -i, --infile   Use an existing CSV file instead of scanning the network for
                  initial discovery
+
   -o, --outfile  Export stat data to a CSV file
+
   -c, --cidr     Use a CIDR block to generate scan range instead of using the
                  broadcast domain
+
   -H, --host     Monitor the state of a single host
+
   -e, --email    Use a gmail account to send state change alerts to a desired
                  email as well as the console
+
   -l, --logging  Log state changes to system logs as well as the console
 
 EXAMPLES:
