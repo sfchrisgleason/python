@@ -4,6 +4,8 @@
 
 ### netscan.py
 
+##### Python 3.x
+
 #### WARNINGS:
 
 ##### THIS SCRIPT WILL DETECT AND SCAN YOUR ENTIRE BROADCAST DOMAIN
@@ -73,6 +75,46 @@ This will then prompt for a specific host to scan, prompt for a TCP port to scan
 
 ### civilwar.py
 
+##### Python 3.x
+
 This is a silly civil war game I created when I was learning the basics of Python.
 
+Not much to it.
+
 ==========================================
+
+### tictactoe.py
+
+##### Python 3.x
+
+This is another silly little game I made to get ton know python better.
+
+Again, not much to it
+
+==========================================
+
+### sysperf.py
+
+##### python 2.x (Though it does say python3 in the hash-bang it runs on python2)
+
+This is a cross-platform performance and statistical gathering script I started a while back. it was an attempt to write something that might actually be useful to someone. It is by no means in any sort of polished form, but has some interesting stuff in it.
+
+The one thing that I find particularly useful is the OSX defaults section that I feel like I'll use regularly if I'm every trying to parse large bits of system configuration. I asked about that out on the tubes and no one seemed to have a concise answer, so it's nice to have.
+
+It uses arg parse so below is the output form the help file:
+
+iusage: sysperf.py [-h] [--ntfs] [--osx] [--quick]
+
+Print system usage statistics and system information. Default (no args) will
+
+determine OS and run all gather functions
+
+optional arguments:
+
+  -h, --help  show this help message and exit
+
+  --ntfs      Gather Windows information
+
+  --osx       Gather OSX information
+
+  --quick     Suppress long running functions (du, iostat, cpu timing)
