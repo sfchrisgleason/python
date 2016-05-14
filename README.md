@@ -12,7 +12,7 @@
 
 If you kick it off, it will detect and scan your entire internal network. While this is a relatively innocuous script in comparison to what's out there, it could mean trouble for you if you are on a network you don't own. Not everyone takes kindly to broad network sweeps against their computers and network infrastructure.
 
-netscan.py uses raw sockets, which require root access. This coupled with the fact that it currently will scan your entire broadcast domain if you just arbitrarily run it without any options means that it's currently not in a state to be used by people who don't know what it does. Eventually I will make it so you have to specify all the options you want for it to run, but for now don't use it unless you read through the script and see exactly what it does.
+netscan.py uses raw sockets, which require root access. Eventually I will make it so you have to specify all the options you want for it to run, but for now use caution and test the script on a safe network before using it elsewhere.
 
 #### Synopsis:
 
