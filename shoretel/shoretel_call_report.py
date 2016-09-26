@@ -37,7 +37,7 @@ if len(sys.argv) == 1:
     print
     print "For the search term, use the IP of the Phone or the username if that fails. You can also use a CALL-ID if you want just that."
     print
-    print "Example: shoretel_call_report.py cgleason TmsNcc-160531.000001.Log IPBX-160531.000001 172.17.68.13 Ophelie"
+    print "Example: shoretel_call_report.py cgleason TmsNcc-160531.000001.Log IPBX-160531.000001 172.17.68.13 \"Firstname Lastname\""
     print
     exit (0)
 
