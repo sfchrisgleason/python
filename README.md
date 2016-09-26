@@ -118,3 +118,13 @@ optional arguments:
   --osx       Gather OSX information
 
   --quick     Suppress long running functions (du, iostat, cpu timing)
+
+==========================================
+
+### shoretel_call_report.py
+
+#### Python 2.x
+
+This is a OSX/Linux script that will mount the Shoretel DVS server of your choice and scrape the logs for all CALL ID's associated with your search term and output them to the terminal along with the BYE code of each call.
+
+It was put together pretty quickly and just uses sys.argv directly, so you have to use the arguments in a specific order for it to work. Se the example in the help.
