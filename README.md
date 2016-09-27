@@ -127,4 +127,11 @@ optional arguments:
 
 This is a OSX/Linux script that will mount the Shoretel DVS server of your choice and scrape the logs for all CALL ID's associated with your search term and output them to the terminal along with the BYE code of each call.
 
-It was put together pretty quickly and just uses sys.argv directly, so you have to use the arguments in a specific order for it to work. Se the example in the help.
+It was put together pretty quickly and just uses sys.argv directly, so you have to use the arguments in a specific order for it to work.
+
+Examples:
+
+python shoretel_call_report.py DvsAdminUsername TmsNcc-160811* IPBX-160811* 192.168.1.100 "Chris Gleason"
+
+This will invoke the script using DvsAdminUsername to authenticate to the DVS to mount the C$ admin share, and search any TmsNcc logs for the username Chris Gleason, then pull all call ID's associated with it from that log, get the BYE codes for those calls, then pull the call log for that CALL ID and output to the terminal.
+
