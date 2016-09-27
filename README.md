@@ -131,7 +131,7 @@ It was put together pretty quickly and just uses sys.argv directly, so you have 
 
 Examples:
 
-*python shoretel_call_report.py DvsAdminUsername TmsNcc-160811\* IPBX-160811\* 192.168.1.100 "Chris Gleason"*
+_python shoretel_call_report.py DvsAdminUsername TmsNcc-160811* IPBX-160811* 192.168.1.100 "Chris Gleason"_
 
 This will invoke the script using DvsAdminUsername to authenticate to the DVS to mount the C$ admin share, and search any TmsNcc logs for the username Chris Gleason, then pull all call ID's associated with it from that log, get the BYE codes for those calls, then pull the call log for that CALL ID and output to the terminal.
 
