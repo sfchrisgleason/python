@@ -12,11 +12,6 @@ Synopsis: This script will poll the TmsNcc logs on a designated
           As well it will poll the IPBX log to pull BYE codes
           per call.
 
-Future Work: I'm planning on expanding this to Twilio as well
-             so we can cross reference Twilio logs with 
-             Shoretel logs as well, but need to read up on the
-             API first.
-
 '''
 
 
