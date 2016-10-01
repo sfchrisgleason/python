@@ -8,10 +8,8 @@ Synopsis: This script will poll the TmsNcc logs on a designated
           to that username or SIP IP (or whatever search string
           you want to use that will be unique to each call 
           creation event C-CE
-
           As well it will poll the IPBX log to pull BYE codes
           per call.
-
 '''
 
 
@@ -81,6 +79,15 @@ for i in id_list:
     id = i
     stripped_cid = id.replace("-","").lstrip("0")
     stripped_cid = "0"+stripped_cid
+    if len(stripped_cid) < int(31):
+        stripped_cid = "0"+stripped_cid
+
+# The insane validation logic above is a sloppy answer to Shoretel's great idea of changing Call ID length between
+# The the IPBX logs and the TmxNcc logs. I had to transform the ID three times to get it to work. Anyhow, it might
+# Break at some time if the Call ID's get wonky. As well, below it appears that sometimes there is no corresponding
+# BYE code in the IPBX logs. Not sure how that works, but to keep the script from breaking when it comes across this
+# I added the if, else clause below.
+
     grep_log1_cmd = "cat /Volumes/dvs/Shoreline\ Data/Logs/{} | grep '{}'".format(log,id)
     call = subprocess.Popen(grep_log1_cmd, shell=True, stdout=subprocess.PIPE)
     call = call.stdout.read()
@@ -91,14 +98,18 @@ for i in id_list:
     print "============================================"
     print
     print call
-    print "........................................"
-    print "BYE code is: " + concat[stripped_cid]
-    print "........................................"
+    if stripped_cid in cid_list:
+        print "........................................"
+        print "BYE code is: " + concat[stripped_cid]
+        print "........................................"
+    else:
+        print "..............................................."
+        print " CALL ID does not have a BYE code in IPBX LOG"
+        print "..............................................."
 
 print
 print "REPORT COMPLETE!"
 print
 
 subprocess.call("umount /Volumes/dvs", shell=True)
-
 
