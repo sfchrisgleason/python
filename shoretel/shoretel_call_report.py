@@ -28,7 +28,7 @@ if len(sys.argv) == 1:
     print "       5) The term you want to search for (SIP IP, Username, etc)"
     print "       in that order"
     print
-    print "For the search term, use the IP of the Phone or the username if that fails. You can also use a CALL-ID if you want just that."
+    print "For the search term the Extension, Username or Phone IP work well. You can also use a CALL-ID if you want just that."
     print
     print "Example: shoretel_call_report.py cgleason TmsNcc-160531.000001.Log IPBX-160531.000001 172.17.68.13 \"Firstname Lastname\""
     print
