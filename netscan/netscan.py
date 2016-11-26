@@ -86,6 +86,7 @@ __version__ = "$Revision: 1.1"
 # IMPORTS #
 ###########
 
+import ctypes
 import argparse
 import subprocess
 import os
@@ -104,7 +105,7 @@ from datetime import datetime
 # NON FUNCTION/CLASS SCRIPT RELATED STUFF #
 ###########################################
 
-if sys.platform != 'win32':
+if sys.platform == 'darwin':
     if os.geteuid() != 0:
         exit('''
 
@@ -112,7 +113,14 @@ This program creates and uses raw sockets which require root\n\
 priviledges to run. Please run it as root in order to use it.
 
 ''')
+elif sys.platform == 'win32':
+    if ctypes.windll.shell32.IsUserAnAdmin() != 1:
+        exit('''
 
+This program creates and uses raw sockets which require admin\n\
+priviledges to run. Please run it as root in order to use it.
+
+''')
 
 if sys.platform != 'darwin' and sys.platform != 'win32' and sys.platform != 'linux':
     print ("OS not supported. Exiting!")
@@ -235,25 +243,22 @@ def get_net_info():
     # Get IP from subprocess
     if sys.platform == 'darwin':
         ipcmd = "ifconfig %s | grep netmask | awk {'print $2'}" % (iface)
-    elif sys.platform == 'win32':
-        ipcmd = "HOLDER"
-    elif sys.platform == 'linux':
-        ipcmd = "HOLDER"
-    ip = subprocess.Popen(ipcmd , shell=True, stdout=subprocess.PIPE)
-    ip = ip.stdout.read()
-    ip = str(ip).strip('b').strip('\'').strip('\\n')
+        ip = subprocess.Popen(ipcmd , shell=True, stdout=subprocess.PIPE)
+        ip = ip.stdout.read()
+        ip = str(ip).strip('b').strip('\'').strip('\\n')
+    if sys.platform == 'win32':
+        ip = socket.gethostbyname(socket.gethostname())
 
     # Get Netmask from subprocess
 
     if sys.platform == 'darwin':
         nmcmd = "ifconfig %s | grep netmask | awk {'print $4'}" % (iface)
-    elif sys.platform == 'win32':
-        nmcmd = "HOLDER"
     elif sys.platform == 'linux':
         nmcmd = "HOLDER"
     nm = subprocess.Popen(nmcmd , shell=True, stdout=subprocess.PIPE)
     nm = nm.stdout.read()
     nm = str(nm).strip('b').strip('\'').strip('\\n')
+        
 
     # Convert hexmask to dotted decimal
 
@@ -281,6 +286,9 @@ def get_net_info():
 
     splitip = ip.split('.')
     splitnm = dd_nm.split('.')
+    if sys.platform == 'win32':
+        #splitnm = subprocess.Popen("for /f "usebackq tokens=2 delims=:" %f in (`ipconfig ^| findstr /c:Mask`) do echo%f" , shell=True, stdout=subprocess,PIPE)
+        splitnm = splitnm.stdout,read()
     net_start = [str(int(splitip[x]) & int(splitnm[x]))
                  for x in range(0,4)]    
     cidr = str('.'.join(net_start) + '/' + get_net_size(splitnm))
