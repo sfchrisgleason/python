@@ -7,7 +7,7 @@
 # Version:  1.0                                                                    #
 # COMMENT: NetScan deamon to monitor state changes for network nodes               #
 #==================================================================================#
-# Simple ICMP/TCP Netscanner to monitor state changes on the network                #
+# Simple ICMP/TCP Netscanner to monitor state changes on the network               #
 #==================================================================================#
 
 ### DESCRIPTION/SYNOPSIS ###
@@ -40,7 +40,7 @@ backround.
 
 4-4-2016 :
 
-Add scan finish statistics, wether it crashes or user kills it with Ctrl+c, output scann settings
+Add scan finish statistics, wether it crashes or user kills it with Ctrl+c, output scan settings
 Number of times scanned and final version of DB with a close message.
 
 5-7-2016 :
@@ -48,33 +48,39 @@ Number of times scanned and final version of DB with a close message.
 Add a quiet option, so if they actually want to demonize it it will stay quiet and won't dump active
 data to the terminal. Then once killed or crashed it will print out the final state dict.
 
+11-25-2016 :
+
+Adding support for multiple platforms/OS's
+
 ### REQUIREMENTS ###
 
-Requires Python 3 and OSX to run. If you read the script carefully you could redesign for python 2
-and for other platforms. The OSX specific subprocess calls and the subnet mask conversion are really
-the only platform dependent code.
+Requires Python 3 to run. It could relatively easily be  redesigned for python 2. I am currently
+modifying The OSX specific subprocess calls and the subnet mask conversion which should make the script
+platform agnostic. Hopefully that drums up a little more interest in it...
 
 ### NOTES ###
 
 IPAddress module will do a lot of the heavy lifting with regards to calculating subnet nodes using a
 CIDR (https://docs.python.org/3/howto/ipaddress.html)
 
-Seems like the socket generator has a hard time keeping up if the scanner runs to fast to often. Not
+Seems like the socket generator has a hard time keeping up if the scanner runs too fast too often. Not
 sure if it's flood protection or the TCP stack coming unravelled. I haven't done any packet filtering to
 see what's happening at the packet level except to make sure the original scnaner is indeed sending
-raw ICMP, but I did find that if I set the time out too low and the scann frequency too low, that
-eventually the scanner will halt with a no route to host error. I found the sweet spot is:
+raw ICMP or TCP on the port selected, but I did find that if I set the time out too low and the scan
+frequency too low, that eventually the scanner will halt with a no route to host error. 
 
-timeout > .05 seconds
+I found the sweet spot is:
+
+timeout > .1 seconds
 frequency > 30 seconds
 
 When running with these threshholds the scanner will run continuously with few issues. If you're
 scanning larger networks, it may make sense to lower the timeout. I find it works fine at .01 but will
-eventually fail if you scann to often, so set the frequency higher if you're scanning large subnets.
+eventually fail if you scan to often, so set the frequency higher if you're scanning large subnets.
 
 '''
 
-__version__ = "$Revision: 1.0"
+__version__ = "$Revision: 1.1"
 
 ###########
 # IMPORTS #
@@ -98,7 +104,8 @@ from datetime import datetime
 # NON FUNCTION/CLASS SCRIPT RELATED STUFF #
 ###########################################
 
-if os.geteuid() != 0:
+if sys.platform != 'win32':
+    if os.geteuid() != 0:
         exit('''
 
 This program creates and uses raw sockets which require root\n\
@@ -106,9 +113,11 @@ priviledges to run. Please run it as root in order to use it.
 
 ''')
 
-if sys.platform != 'darwin':
-    print ("This script was designed to run on OSX. Currently that is the only platform it will work on.")
+
+if sys.platform != 'darwin' and sys.platform != 'win32' and sys.platform != 'linux':
+    print ("OS not supported. Exiting!")
     exit(0)
+
 
 parser = argparse.ArgumentParser(description='\
     Network scanning daemon to check for node state changes via TCP/UDP/ICMP. \
@@ -157,11 +166,11 @@ ofile = ""
 alert_total = ""
 totalruns = 0
 t1 = datetime.now()
+ipcmd = ""
 
 #############
 # FUNCTIONS #
 #############
-
 
 def output_title(title):
 
@@ -224,15 +233,24 @@ def get_net_info():
     #get_tout(tout)
 
     # Get IP from subprocess
-
-    ipcmd = "ifconfig %s | grep netmask | awk {'print $2'}" % (iface)
+    if sys.platform == 'darwin':
+        ipcmd = "ifconfig %s | grep netmask | awk {'print $2'}" % (iface)
+    elif sys.platform == 'win32':
+        ipcmd = "HOLDER"
+    elif sys.platform == 'linux':
+        ipcmd = "HOLDER"
     ip = subprocess.Popen(ipcmd , shell=True, stdout=subprocess.PIPE)
     ip = ip.stdout.read()
     ip = str(ip).strip('b').strip('\'').strip('\\n')
 
     # Get Netmask from subprocess
 
-    nmcmd = "ifconfig %s | grep netmask | awk {'print $4'}" % (iface)
+    if sys.platform == 'darwin':
+        nmcmd = "ifconfig %s | grep netmask | awk {'print $4'}" % (iface)
+    elif sys.platform == 'win32':
+        nmcmd = "HOLDER"
+    elif sys.platform == 'linux':
+        nmcmd = "HOLDER"
     nm = subprocess.Popen(nmcmd , shell=True, stdout=subprocess.PIPE)
     nm = nm.stdout.read()
     nm = str(nm).strip('b').strip('\'').strip('\\n')
@@ -456,9 +474,9 @@ def print_dict(sd):
 
     for x,y in sd.items():
         print_ip = x
-        print_rtt = y[0]
+        print_rtt = str(y[0])
         print_count = y[1]
-        print ("IP: " + str(print_ip) + "\t\tRTT: " + str(print_rtt) + "\t\t\tChange Count: " + str(print_count))
+        print ("IP: " + str(print_ip) + "  \t\tRTT: " + print_rtt[0:8] + "\t\t\tChange Count: " + str(print_count))
 
 def csv_writer(ofile):
 
@@ -490,7 +508,12 @@ def log_alert(alert):
     Function to take state change list and log in syslog
     '''
 
-    subprocess.Popen("logger " + alert, shell=True, stdout=subprocess.PIPE)
+    if sys.platform == 'darwin':
+        subprocess.Popen("logger " + alert, shell=True, stdout=subprocess.PIPE)
+    elif sys.platform == 'win32':
+        print('HOLDER')
+    elif sys.platform == 'linux':
+        print('HOLDER')
 
 ############
 # MAIN RUN #
