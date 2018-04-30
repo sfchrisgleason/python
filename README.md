@@ -135,3 +135,10 @@ _python shoretel_call_report.py DvsAdminUsername TmsNcc-160811* IPBX-160811* 192
 
 This will invoke the script using DvsAdminUsername to authenticate to the DVS to mount the C$ admin share, and search any TmsNcc logs from 8-11-2016 for the username Chris Gleason, then pull all call ID's associated with it from that log, get the BYE codes for those calls, then pull the call log for that CALL ID and output to the terminal.
 
+=============================================
+
+### GleaAgg
+
+#### Python 2.4/3.x
+
+This is the start of a log aggregation project using Flask as the UI for the client/server. It's just in the infancy phase so will update this when I have a v1.
